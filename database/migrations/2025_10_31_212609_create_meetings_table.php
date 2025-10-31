@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('regs', function (Blueprint $table) {
+        // Every selected day will be an automatically created meeting
+        Schema::create('meetings', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->nullable(); // name of person
-            $table->string('number'); // student number
-            $table->integer('sessions_attended')->default(1); // number of sessions attended
+            $table->integer('sessions_attended')->default(0);
+            $table->dateTime('start_time')->nullable();
+            $table->dateTime('end_time')->nullable();
+            $table->text('info')->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('regs');
+        Schema::dropIfExists('meetings');
     }
 };

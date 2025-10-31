@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { login } from '@/routes';
-import { email } from '@/routes/password';
+import { email as emailRoute } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
+
+const formProps = { action: emailRoute().url, method: 'post' } as any;
 
 defineProps<{
     status?: string;
@@ -30,7 +32,7 @@ defineProps<{
         </div>
 
         <div class="space-y-6">
-            <Form v-bind="email.form()" v-slot="{ errors, processing }">
+            <Form v-bind="formProps" v-slot="{ errors, processing }">
                 <div class="grid gap-2">
                     <Label for="email">Email address</Label>
                     <Input

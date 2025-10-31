@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { register } from '@/routes';
-import { store } from '@/routes/login';
+import { store as loginStore } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
 
@@ -17,6 +17,12 @@ defineProps<{
     canResetPassword: boolean;
     canRegister: boolean;
 }>();
+
+// Build form attributes from the generated route helper instead of calling store.form()
+const formProps = {
+    action: loginStore().url,
+    method: 'post',
+};
 </script>
 
 <template>
@@ -34,7 +40,7 @@ defineProps<{
         </div>
 
         <Form
-            v-bind="store.form()"
+            v-bind="formProps"
             :reset-on-success="['password']"
             v-slot="{ errors, processing }"
             class="flex flex-col gap-6"
@@ -98,13 +104,13 @@ defineProps<{
                 </Button>
             </div>
 
-<!--            <div-->
-<!--                class="text-center text-sm text-muted-foreground"-->
-<!--                v-if="canRegister"-->
-<!--            >-->
-<!--                Don't have an account?-->
-<!--                <TextLink :href="register()" :tabindex="5">Sign up</TextLink>-->
-<!--            </div>-->
+            <div
+                class="text-center text-sm text-muted-foreground"
+                v-if="canRegister"
+            >
+                Don't have an account?
+                <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+            </div>
         </Form>
     </AuthBase>
 </template>

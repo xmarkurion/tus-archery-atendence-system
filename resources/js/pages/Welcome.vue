@@ -54,6 +54,10 @@ async function submitForm() {
         setMessage('Please enter a student number.', false);
         return;
     }
+    if (!name.value) {
+        setMessage('Please enter a name.', false);
+        return;
+    }
     loading.value = true;
     try {
         // helper to read cookie
@@ -157,6 +161,7 @@ async function submitForm() {
                                 type="text"
                                 placeholder="Name"
                                 class="mb-2 w-full rounded border px-3 py-2 text-sm dark:bg-[#121212] dark:border-[#2b2b2b]"
+                                required
                             />
                             <input
                                 v-model="number"

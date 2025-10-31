@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/AuthLayout.vue';
-import { update } from '@/routes/password';
+import { update as updateRoute } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -15,6 +15,7 @@ const props = defineProps<{
 }>();
 
 const inputEmail = ref(props.email);
+const formProps = { action: updateRoute().url, method: 'post' } as any;
 </script>
 
 <template>
@@ -25,7 +26,7 @@ const inputEmail = ref(props.email);
         <Head title="Reset password" />
 
         <Form
-            v-bind="update.form()"
+            v-bind="formProps"
             :transform="(data) => ({ ...data, token, email })"
             :reset-on-success="['password', 'password_confirmation']"
             v-slot="{ errors, processing }"
