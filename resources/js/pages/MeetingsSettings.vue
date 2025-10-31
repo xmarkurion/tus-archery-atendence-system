@@ -4,11 +4,19 @@ import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import settingsRoutes from '@/routes/meeting/settings';
 import { Button } from '@/components/ui/button';
+import { useDateFormat } from '@vueuse/core'
 
 // typed props from Inertia
 const props = defineProps<{
     settings?: { selected_days?: string[]; enabled?: boolean } | null;
-    meetings?: Array<{ id?: number; start_time?: string; end_time?: string | null; info?: string }>;
+    meetings?: Array<{
+        id?: number;
+        start_time?: string;
+        end_time?: string | null;
+        info?: string
+        created_at?: string;
+        pin?: string;
+    }>;
     flash?: { status?: string } | null;
 }>();
 
@@ -125,16 +133,16 @@ defineExpose({ toggleDay, save, toggleEnabled, runNow });
                         <thead>
                             <tr class="text-left">
                                 <th class="p-2">ID</th>
-                                <th class="p-2">Start</th>
-                                <th class="p-2">End</th>
+                                <th class="p-2">Pin</th>
+                                <th class="p-2">Created at</th>
                                 <th class="p-2">Info</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="m in meetings" :key="m.id" class="border-t">
                                 <td class="p-2">{{ m.id }}</td>
-                                <td class="p-2">{{ m.start_time }}</td>
-                                <td class="p-2">{{ m.end_time }}</td>
+                                <td class="p-2">{{ m.pin }}</td>
+                                <td class="p-2"> {{ useDateFormat(m.created_at, 'YYYY-MM-DD  HH:mm:ss') }}</td>
                                 <td class="p-2">{{ m.info }}</td>
                             </tr>
                         </tbody>
