@@ -3,7 +3,6 @@
 use Laravel\Fortify\Features;
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Fortify Guard
@@ -144,7 +143,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Registration disabled intentionally:
+         Features::registration(),
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([

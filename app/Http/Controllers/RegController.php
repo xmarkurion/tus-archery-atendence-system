@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Reg;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class RegController extends Controller
 {
@@ -12,7 +13,11 @@ class RegController extends Controller
      */
     public function index()
     {
-        //
+        // Return latest 50 regs for optional admin view
+        $regs = Reg::latest()->take(50)->get();
+        return Inertia::render('Regs/Index', [
+            'regs' => $regs,
+        ]);
     }
 
     /**
@@ -28,7 +33,19 @@ class RegController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+            'number' => ['required', 'string', 'max:255'],
+        ]);
+
+        // Create reg entry (numbers are NOT required to be unique)
+        $reg = Reg::create($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Number {$reg->number} was registered.",
+            'reg' => $reg,
+        ], 201);
     }
 
     /**
