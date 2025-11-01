@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\RegController;
 use App\Http\Controllers\MeetingSettingsController;
+use App\Http\Controllers\MeetingRegistrationController;
 
 
 Route::get('/', function () {
@@ -26,6 +27,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/meeting-settings', [MeetingSettingsController::class, 'update'])->name('meeting.settings.update');
     Route::post('/meeting-settings/toggle', [MeetingSettingsController::class, 'toggle'])->name('meeting.settings.toggle');
     Route::post('/meeting-settings/run-now', [MeetingSettingsController::class, 'runNow'])->name('meeting.settings.runnow');
+    Route::get('/meeting/register', [MeetingRegistrationController::class, 'showToday'])->name('meeting.register');
+    Route::post('/meeting/register', [MeetingRegistrationController::class, 'register'])->name('meeting.register.post');
 });
+
+// Public API endpoints for meeting registration
+Route::get('/api/meeting/today', [MeetingRegistrationController::class, 'apiToday']);
+Route::post('/api/meeting/verify-pin', [MeetingRegistrationController::class, 'apiVerifyPin']);
+Route::post('/api/meeting/register', [MeetingRegistrationController::class, 'apiRegister']);
+// Allow visiting the endpoint directly (GET) or calling it programmatically (POST)
+Route::match(['get', 'post'], '/api/meeting/create', [MeetingRegistrationController::class, 'apiCreateTodayWithPin']);
 
 require __DIR__.'/settings.php';

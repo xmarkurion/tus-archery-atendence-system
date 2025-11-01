@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { dashboard, login } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
-import { ref, onBeforeUnmount } from 'vue';
+import { ref, onBeforeUnmount, onMounted, computed } from 'vue';
 
 withDefaults(
     defineProps<{
@@ -21,21 +21,18 @@ const loading = ref(false);
 const timeoutId = ref<number | null>(null);
 
 function setMessage(text: string, autoHide = true) {
-    // set the message and optionally auto-hide after 2s
     message.value = text;
 
-    // clear any existing timeout
     if (timeoutId.value !== null) {
         clearTimeout(timeoutId.value);
         timeoutId.value = null;
     }
 
     if (autoHide) {
-        // schedule hide after 2 seconds
         timeoutId.value = window.setTimeout(() => {
             message.value = '';
             timeoutId.value = null;
-        }, 1000);
+        }, 2000);
     }
 }
 
@@ -45,6 +42,71 @@ onBeforeUnmount(() => {
         timeoutId.value = null;
     }
 });
+
+// meeting flow state
+const meeting = ref<any | null>(null);
+const pinNeeded = ref(false);
+const pinValue = ref('');
+const pinVerified = ref(false);
+
+// computed helper: can register when a meeting exists AND (no pin required OR pin verified)
+const canRegisterLocal = computed(() => {
+    return meeting.value !== null && (!pinNeeded.value || pinVerified.value);
+});
+
+async function loadTodayMeeting() {
+    try {
+        const url = `${window.location.origin}/api/meeting/today`;
+        console.log('loadTodayMeeting -> fetching', url);
+        const res = await fetch(url, { credentials: 'same-origin' });
+        console.log('loadTodayMeeting -> response status', res.status);
+        if (!res.ok) {
+            console.warn('loadTodayMeeting -> fetch not ok');
+            return;
+        }
+        const data = await res.json();
+        console.log('loadTodayMeeting -> data', data);
+        meeting.value = data.meeting;
+        pinNeeded.value = !!(meeting.value && meeting.value.requires_pin);
+        pinVerified.value = !pinNeeded.value;
+    } catch (err) { console.error('loadTodayMeeting -> error', err); }
+}
+
+// helper to read cookie
+const getCookie = (name: string) => {
+    const match = document.cookie.match(new RegExp('(^|;)\\s*' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+};
+
+async function verifyPin() {
+    if (!meeting.value) return setMessage('No meeting today', false);
+    if (!pinValue.value) return setMessage('Enter pin', false);
+    loading.value = true;
+    try {
+        const xsrf = getCookie('XSRF-TOKEN');
+        const metaToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+        const res = await fetch(`${window.location.origin}/api/meeting/verify-pin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': metaToken,
+                'X-XSRF-TOKEN': xsrf || ''
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ meeting_id: meeting.value.id, pin: pinValue.value }),
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+            pinVerified.value = true;
+            setMessage('PIN verified', true);
+        } else {
+            setMessage(data.message || 'Wrong PIN', false);
+        }
+    } catch (err) { void err; setMessage('Network error', false); } finally {
+        loading.value = false;
+    }
+}
 
 async function submitForm() {
     // clear any previous message immediately when user presses OK
@@ -58,30 +120,32 @@ async function submitForm() {
         setMessage('Please enter a name.', false);
         return;
     }
+
+    if (!meeting.value) {
+        setMessage('No session today.', false);
+        return;
+    }
+
+    if (pinNeeded.value && !pinVerified.value) {
+        setMessage('Please verify PIN before registering', false);
+        return;
+    }
+
     loading.value = true;
     try {
-        // helper to read cookie
-        const getCookie = (name: string) => {
-            const match = document.cookie.match(new RegExp('(^|;)\\s*' + name + '=([^;]+)'));
-            return match ? decodeURIComponent(match[2]) : null;
-        };
-
         const xsrf = getCookie('XSRF-TOKEN');
         const metaToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
-
-        const res = await fetch('/register-number', {
+        const res = await fetch(`${window.location.origin}/api/meeting/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                // send both: meta token and cookie token (cookie token goes in X-XSRF-TOKEN)
                 'X-CSRF-TOKEN': metaToken,
                 'X-XSRF-TOKEN': xsrf || ''
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ name: name.value, number: number.value }),
+            body: JSON.stringify({ meeting_id: meeting.value.id, pin: pinValue.value, name: name.value, number: number.value }),
         });
-
         const data = await res.json();
         if (res.ok && data.success) {
             // show success and auto-hide after 2s
@@ -89,16 +153,25 @@ async function submitForm() {
             // reset fields
             name.value = '';
             number.value = '';
+            pinValue.value = '';
+            pinVerified.value = false;
+
+            // reload meeting to update attendees count or pin requirement
+            await loadTodayMeeting();
         } else {
             // show error but do not auto-hide
             setMessage(data.message || 'There was an error registering.', false);
         }
-    } catch {
-        setMessage('Network error.', false);
-    } finally {
+    } catch (err) { void err; setMessage('Network error', false); } finally {
         loading.value = false;
     }
 }
+
+// call loader immediately and onMounted to ensure it runs in all navigation contexts
+void loadTodayMeeting();
+onMounted(() => {
+    void loadTodayMeeting();
+});
 </script>
 
 <template>
@@ -156,26 +229,42 @@ async function submitForm() {
                     <div class="mt-8 flex items-center justify-center">
                         <div class="w-full max-w-md bg-white dark:bg-[#0b0b0b] p-6 rounded shadow text-center">
                             <p class="mb-3 font-medium">HERE</p>
-                            <input
-                                v-model="name"
-                                type="text"
-                                placeholder="Name"
-                                class="mb-2 w-full rounded border px-3 py-2 text-sm dark:bg-[#121212] dark:border-[#2b2b2b]"
-                                required
-                            />
-                            <input
-                                v-model="number"
-                                type="text"
-                                placeholder="Student number"
-                                class="mb-3 w-full rounded border px-3 py-2 text-sm dark:bg-[#121212] dark:border-[#2b2b2b]"
-                            />
-                            <button
-                                @click.prevent="submitForm"
-                                :disabled="loading"
-                                class="inline-flex items-center justify-center rounded bg-[#1b1b18] px-4 py-2 text-sm text-white hover:opacity-90 disabled:opacity-60"
-                            >
-                                OK
-                            </button>
+                            <div v-if="meeting == null">
+                                <p class="mb-2">No session today.</p>
+                            </div>
+                            <div v-else>
+                                <p class="mb-2">Session today at {{ meeting.start_time }}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    Attendees: {{ meeting.sessions_attended ?? 0 }}
+                                </p>
+<!--                                <pre class="text-xs text-left mt-2 break-words">{{ JSON.stringify(meeting, null, 2) }}</pre>-->
+                            </div>
+                            <div v-if="meeting && pinNeeded && !pinVerified" class="mb-3">
+                                <input v-model="pinValue" type="text" placeholder="Session PIN" class="mb-2 w-full rounded border px-3 py-2 text-sm dark:bg-[#121212] dark:border-[#2b2b2b]" />
+                                <button @click.prevent="verifyPin" :disabled="loading" class="inline-flex items-center justify-center rounded bg-[#1b1b18] px-4 py-2 text-sm text-white hover:opacity-90 disabled:opacity-60">Verify PIN</button>
+                            </div>
+                            <div v-if="canRegisterLocal">
+                                <input
+                                    v-model="name"
+                                    type="text"
+                                    placeholder="Full name (as in university records)"
+                                    class="mb-2 w-full rounded border px-3 py-2 text-sm dark:bg-[#121212] dark:border-[#2b2b2b]"
+                                    required
+                                />
+                                <input
+                                    v-model="number"
+                                    type="text"
+                                    placeholder="Student number"
+                                    class="mb-3 w-full rounded border px-3 py-2 text-sm dark:bg-[#121212] dark:border-[#2b2b2b]"
+                                />
+                                <button
+                                    @click.prevent="submitForm"
+                                    :disabled="loading"
+                                    class="inline-flex items-center justify-center rounded bg-[#1b1b18] px-4 py-2 text-sm text-white hover:opacity-90 disabled:opacity-60"
+                                >
+                                    OK
+                                </button>
+                            </div>
                             <p v-if="message" class="mt-3 text-sm">{{ message }}</p>
                         </div>
                     </div>

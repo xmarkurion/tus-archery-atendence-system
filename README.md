@@ -1,5 +1,5 @@
 php artisan meetings:create-daily
-
+php artisan schedule:work
 
 To simulate the scheduler for production you should set up your OS scheduler to run:
 Unix: * * * * * php /path/to/artisan schedule:run >> /dev/null 2>&1
