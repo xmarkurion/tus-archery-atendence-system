@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import settingsRoutes from '@/routes/meeting/settings';
 import { Button } from '@/components/ui/button';
 import { useDateFormat } from '@vueuse/core'
-import { Eye } from 'lucide-vue-next';
+import { Eye, Trash } from 'lucide-vue-next';
 
 // typed props from Inertia
 const props = defineProps<{
@@ -99,10 +99,71 @@ const runNow = () => {
 
 const enabled = computed(() => settings.value.enabled ?? true);
 
+const deletingMeeting = ref<number | null>(null);
+
+// helper to read cookie (used for CSRF/XSRF)
+const getCookie = (name: string) => {
+    const match = document.cookie.match(new RegExp('(^|;)\\s*' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+};
+
 const openDetails = (id?: number) => {
     if (typeof id === 'undefined') return;
     // navigate to the standalone meeting view page
     router.get(`/meeting/${id}/view`);
+};
+
+const deleteMeeting = async (id?: number) => {
+    if (typeof id === 'undefined') return;
+    if (! confirm('Delete this meeting? This will remove all registrations for it.')) return;
+    deletingMeeting.value = id;
+
+    const metaToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+    const xsrf = getCookie('XSRF-TOKEN');
+
+    try {
+        const res = await fetch(`/meeting/${id}/delete`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': metaToken,
+                'X-XSRF-TOKEN': xsrf || '',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({}),
+        });
+
+        const ct = res.headers.get('content-type') || '';
+        if (!res.ok) {
+            if (ct.includes('application/json')) {
+                const j = await res.json().catch(() => null);
+                alert(j?.message || `Failed to delete meeting (status ${res.status})`);
+            } else {
+                const text = await res.text();
+                alert(text?.substring(0,500) || `Failed to delete meeting (status ${res.status})`);
+            }
+            return;
+        }
+
+        if (ct.includes('application/json')) {
+            const j = await res.json().catch(() => null);
+            if (j && j.success) {
+                // refresh meetings list
+                router.get(settingsRoutes.index().url, {}, { preserveState: false });
+            } else {
+                alert(j?.message || 'Failed to delete meeting');
+            }
+        } else {
+            router.get(settingsRoutes.index().url, {}, { preserveState: false });
+        }
+    } catch (err) {
+        console.error('deleteMeeting error', err);
+        alert('Network error while deleting meeting');
+    } finally {
+        deletingMeeting.value = null;
+    }
 };
 
 // expose for template/type checking
@@ -175,8 +236,14 @@ defineExpose({ toggleDay, save, toggleEnabled, runNow });
                                 <td class="p-2">{{ m.pin }}</td>
                                 <td class="p-2"> {{ useDateFormat(m.created_at, 'YYYY-MM-DD  HH:mm:ss')}}</td>
                                 <td class="p-2">{{ m.info }}</td>
-                                <td class="p-2"><button @click.prevent="openDetails(m.id)"><Eye/></button></td>
-                            </tr>
+                                <td class="p-2 flex items-center gap-2">
+                                    <button @click.prevent="openDetails(m.id)" title="View"><Eye/></button>
+                                    <button @click.prevent="deleteMeeting(m.id)" :disabled="deletingMeeting === m.id" title="Delete" class="text-red-600">
+                                        <template v-if="deletingMeeting === m.id">⏳</template>
+                                        <template v-else><Trash/></template>
+                                    </button>
+                                </td>
+                             </tr>
                         </tbody>
                     </table>
                 </div>

@@ -86,10 +86,30 @@ class MeetingSettingsController extends Controller
             // create meeting for today (if not exists)
             $exists = Meeting::whereDate('start_time', now()->toDateString())->exists();
             if (! $exists) {
+                // Determine start_time and end_time from settings defaults
+                $defaultStart = $settings->default_start_time ?? null; // stored as H:i:s or null
+                $defaultDuration = (int) ($settings->default_duration ?? 60);
+
+                // Compose start datetime for today using the default time if valid, otherwise use now()
+                $start = now();
+                if ($defaultStart) {
+                    try {
+                        $parts = explode(':', $defaultStart);
+                        $hour = isset($parts[0]) ? (int)$parts[0] : now()->hour;
+                        $minute = isset($parts[1]) ? (int)$parts[1] : now()->minute;
+                        $second = isset($parts[2]) ? (int)$parts[2] : 0;
+                        $start = now()->setTime($hour, $minute, $second);
+                    } catch (\Throwable $e) {
+                        $start = now();
+                    }
+                }
+
+                $end = (clone $start)->addMinutes($defaultDuration);
+
                 Meeting::create([
                     'sessions_attended' => 0,
-                    'start_time' => now(),
-                    'end_time' => null,
+                    'start_time' => $start,
+                    'end_time' => $end,
                     'info' => 'Auto-created meeting',
                 ]);
                 return redirect()->route('meeting.settings.index')->with('status', 'Meeting created for today');
@@ -238,5 +258,34 @@ class MeetingSettingsController extends Controller
         return Inertia::render('Meeting/Show', [
             'meeting' => $meeting->toArray(),
         ]);
+    }
+
+    // Destroy a meeting and detach associated regs (adjust counters)
+    public function destroyMeeting(Request $request, $id)
+    {
+        $meeting = Meeting::with('regs')->find($id);
+        if (! $meeting) {
+            if ($request->ajax() || str_contains($request->header('Accept', ''), 'application/json')) {
+                return response()->json(['success' => false, 'message' => 'Meeting not found'], 404);
+            }
+            return redirect()->route('meeting.settings.index')->with('status', 'Meeting not found');
+        }
+
+        // Detach regs and decrement their sessions_attended
+        foreach ($meeting->regs as $reg) {
+            // detach pivot
+            $meeting->regs()->detach($reg->id);
+            if ($reg->sessions_attended > 0) {
+                $reg->decrement('sessions_attended');
+            }
+        }
+
+        $meeting->delete();
+
+        if ($request->ajax() || str_contains($request->header('Accept', ''), 'application/json')) {
+            return response()->json(['success' => true, 'message' => 'Meeting deleted']);
+        }
+
+        return redirect()->route('meeting.settings.index')->with('status', 'Meeting deleted');
     }
 }

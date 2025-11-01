@@ -41,6 +41,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reg-settings', [RegController::class, 'index'])->name('regs.index');
     Route::post('/regs/{reg}/update', [RegController::class, 'update'])->name('regs.update');
     Route::post('/regs/{reg}/delete', [RegController::class, 'destroy'])->name('regs.destroy');
+    // Allow deleting via browser GET for quick access or POST for AJAX/forms
+    Route::match(['get','post'], '/meeting/{id}/delete', [MeetingSettingsController::class, 'destroyMeeting'])->name('meeting.delete');
 
 });
 

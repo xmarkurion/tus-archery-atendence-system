@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\MeetingSetting;
 use App\Models\Meeting;
+use Carbon\Carbon;
 
 class CreateMeetingsCommand extends Command
 {
@@ -43,16 +44,29 @@ class CreateMeetingsCommand extends Command
         $defaultDuration = (int) ($settings->default_duration ?? 60);
 
         // Compose start datetime for today using the default time
-        $start = now()->startOfDay()->addHours(0);
-        try {
-            $parts = explode(':', $defaultStart);
-            $hour = isset($parts[0]) ? (int)$parts[0] : 18;
-            $minute = isset($parts[1]) ? (int)$parts[1] : 0;
-            $second = isset($parts[2]) ? (int)$parts[2] : 0;
-            $start = now()->setTime($hour, $minute, $second);
-        } catch (\Throwable $e) {
-            $start = now()->setTime(18,0,0);
+        // Normalize and parse times like "18:00" or "18:00:00" safely.
+        $hour = 18; $minute = 0; $second = 0;
+        if (is_string($defaultStart) && preg_match('/^\s*\d{1,2}:\d{2}(:\d{2})?\s*$/', $defaultStart)) {
+            $parts = explode(':', trim($defaultStart));
+            $hour = (int) ($parts[0] ?? 18);
+            $minute = (int) ($parts[1] ?? 0);
+            $second = (int) ($parts[2] ?? 0);
+            // clamp values to valid ranges
+            $hour = max(0, min(23, $hour));
+            $minute = max(0, min(59, $minute));
+            $second = max(0, min(59, $second));
+        } else {
+            // try Carbon parse fallback (if someone stored '6pm' or similar)
+            try {
+                $c = Carbon::parse($defaultStart);
+                $hour = $c->hour; $minute = $c->minute; $second = $c->second;
+            } catch (\Throwable $ex) {
+                // keep defaults
+                $hour = 18; $minute = 0; $second = 0;
+            }
         }
+
+        $start = Carbon::today()->setTime($hour, $minute, $second);
 
         $end = (clone $start)->addMinutes($defaultDuration);
 
