@@ -26,6 +26,9 @@ class MeetingSettingsController extends Controller
         $data = $request->validate([
             'selected_days' => 'array',
             'selected_days.*' => 'string',
+            // accept string so we can handle both H:i and H:i:s (browser time input gives H:i)
+            'default_start_time' => 'nullable|string',
+            'default_duration' => 'nullable|integer|min:1|max:1440',
         ]);
 
         $settings = MeetingSetting::first();
@@ -35,6 +38,21 @@ class MeetingSettingsController extends Controller
         }
 
         $settings->selected_days = $data['selected_days'] ?? [];
+        if (array_key_exists('default_start_time', $data)) {
+            $dst = $data['default_start_time'];
+            if ($dst) {
+                // normalize H:i to H:i:s if needed
+                if (preg_match('/^\d{2}:\d{2}$/', $dst)) {
+                    $dst = $dst . ':00';
+                }
+                $settings->default_start_time = $dst;
+            } else {
+                $settings->default_start_time = null;
+            }
+        }
+        if (array_key_exists('default_duration', $data)) {
+            $settings->default_duration = (int) $data['default_duration'];
+        }
         $settings->save();
 
         // Redirect to the Inertia page so the client receives fresh props
@@ -80,5 +98,145 @@ class MeetingSettingsController extends Controller
         }
 
         return redirect()->route('meeting.settings.index')->with('status', 'Today is not a selected day');
+    }
+
+    // Return meeting details and attendees as JSON (used by the front-end modal)
+    public function meetingDetails(Request $request, $id)
+    {
+        $meeting = Meeting::with(['regs'])->find($id);
+        if (! $meeting) {
+            return response()->json(['meeting' => null], 404);
+        }
+
+        // Format regs/simple data
+        $regs = $meeting->regs->map(function ($r) {
+            return [
+                'id' => $r->id,
+                'name' => $r->name,
+                'number' => $r->number,
+                'sessions_attended' => $r->sessions_attended,
+                'created_at' => $r->created_at ? $r->created_at->toDateTimeString() : null,
+            ];
+        });
+
+        return response()->json([
+            'meeting' => [
+                'id' => $meeting->id,
+                'start_time' => $meeting->start_time ? $meeting->start_time->toDateTimeString() : null,
+                'end_time' => $meeting->end_time ? $meeting->end_time->toDateTimeString() : null,
+                'info' => $meeting->info,
+                'pin' => $meeting->pin,
+                'sessions_attended' => (int) $meeting->sessions_attended,
+                'regs' => $regs,
+            ],
+        ]);
+    }
+
+    // Update meeting fields: start_time, end_time, info, pin
+    public function updateMeeting(Request $request, $id)
+    {
+        $data = $request->validate([
+            'start_time' => 'nullable|date',
+            'end_time' => 'nullable|date',
+            'info' => 'nullable|string',
+            'pin' => 'nullable|numeric',
+        ]);
+
+        $meeting = Meeting::find($id);
+        if (! $meeting) {
+            // For Inertia requests we should return a redirect so the client receives a proper Inertia response
+            if ($request->header('X-Inertia')) {
+                return Inertia::location(route('meeting.settings.index'));
+            }
+            return redirect()->route('meeting.settings.index')->with('status', 'Meeting not found');
+        }
+
+        if (array_key_exists('start_time', $data)) $meeting->start_time = $data['start_time'];
+        if (array_key_exists('end_time', $data)) $meeting->end_time = $data['end_time'];
+        if (array_key_exists('info', $data)) $meeting->info = $data['info'];
+        if (array_key_exists('pin', $data)) $meeting->pin = $data['pin'];
+
+        $meeting->save();
+
+        if ($request->header('X-Inertia')) {
+            return Inertia::location(route('meeting.settings.index'));
+        }
+
+        return redirect()->route('meeting.settings.index')->with('status', 'Meeting updated');
+    }
+
+    // Remove attendee (detach pivot) and decrement counters
+    public function removeAttendee(Request $request, $meetingId, $regId)
+    {
+        // If this request is coming from an XHR/fetch client and the user is not authenticated,
+        // return a JSON 401 rather than letting middleware redirect to the login HTML page.
+        if (! auth()->check()) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+        }
+        $meeting = Meeting::find($meetingId);
+        if (! $meeting) return response()->json(['success' => false, 'message' => 'Meeting not found'], 404);
+
+        $reg = \App\Models\Reg::find($regId);
+        if (! $reg) return response()->json(['success' => false, 'message' => 'Registrant not found'], 404);
+
+        // check attachment
+        if (! $meeting->regs()->where('regs.id', $reg->id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Registrant not attached to meeting'], 400);
+        }
+
+        $meeting->regs()->detach($reg->id);
+
+        // decrement counts safely (no negative)
+        if ($reg->sessions_attended > 0) $reg->decrement('sessions_attended');
+        if ($meeting->sessions_attended > 0) $meeting->decrement('sessions_attended');
+
+        return response()->json(['success' => true, 'message' => 'Registrant removed']);
+    }
+
+    // Export meeting to PDF or return printable HTML
+    public function exportPdf(Request $request, $id)
+    {
+        $meeting = Meeting::with('regs')->find($id);
+        if (! $meeting) {
+            return redirect()->route('meeting.settings.index')->with('status', 'Meeting not found');
+        }
+
+        $data = [
+            'meeting' => $meeting,
+            'day' => $meeting->start_time ? $meeting->start_time->format('l, Y-m-d H:i') : null,
+            'attendees_count' => (int) $meeting->sessions_attended,
+            'attendees' => $meeting->regs->map(function ($r) {
+                return ['name' => $r->name, 'number' => $r->number];
+            })->toArray(),
+        ];
+
+        // try to generate PDF if Dompdf is installed
+        if (class_exists('\Dompdf\\Dompdf')) {
+            $html = view('meetings.export', $data)->render();
+            $dompdf = new \Dompdf\Dompdf();
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+            return response($dompdf->output(), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="meeting-'.$meeting->id.'.pdf"'
+            ]);
+        }
+
+        // fallback: return printable view
+        return view('meetings.export', $data);
+    }
+
+    // Render a standalone Inertia page that shows meeting and attendees (used instead of modal)
+    public function showMeeting(Request $request, $id)
+    {
+        $meeting = Meeting::with('regs')->find($id);
+        if (! $meeting) {
+            return redirect()->route('meeting.settings.index')->with('status', 'Meeting not found');
+        }
+
+        return Inertia::render('Meeting/Show', [
+            'meeting' => $meeting->toArray(),
+        ]);
     }
 }

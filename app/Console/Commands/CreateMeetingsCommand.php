@@ -38,10 +38,28 @@ class CreateMeetingsCommand extends Command
             return 0;
         }
 
+        // Determine start_time and end_time using defaults from settings
+        $defaultStart = $settings->default_start_time ?? '18:00:00';
+        $defaultDuration = (int) ($settings->default_duration ?? 60);
+
+        // Compose start datetime for today using the default time
+        $start = now()->startOfDay()->addHours(0);
+        try {
+            $parts = explode(':', $defaultStart);
+            $hour = isset($parts[0]) ? (int)$parts[0] : 18;
+            $minute = isset($parts[1]) ? (int)$parts[1] : 0;
+            $second = isset($parts[2]) ? (int)$parts[2] : 0;
+            $start = now()->setTime($hour, $minute, $second);
+        } catch (\Throwable $e) {
+            $start = now()->setTime(18,0,0);
+        }
+
+        $end = (clone $start)->addMinutes($defaultDuration);
+
         Meeting::create([
             'sessions_attended' => 0,
-            'start_time' => now(),
-            'end_time' => null,
+            'start_time' => $start,
+            'end_time' => $end,
             'info' => 'Auto-created by scheduler',
         ]);
 
@@ -49,4 +67,3 @@ class CreateMeetingsCommand extends Command
         return 0;
     }
 }
-

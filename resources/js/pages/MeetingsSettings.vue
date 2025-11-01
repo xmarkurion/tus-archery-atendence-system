@@ -5,10 +5,11 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import settingsRoutes from '@/routes/meeting/settings';
 import { Button } from '@/components/ui/button';
 import { useDateFormat } from '@vueuse/core'
+import { Eye } from 'lucide-vue-next';
 
 // typed props from Inertia
 const props = defineProps<{
-    settings?: { selected_days?: string[]; enabled?: boolean } | null;
+    settings?: { selected_days?: string[]; enabled?: boolean; default_start_time?: string; default_duration?: number } | null;
     meetings?: Array<{
         id?: number;
         start_time?: string;
@@ -20,13 +21,13 @@ const props = defineProps<{
     flash?: { status?: string } | null;
 }>();
 
-const settings = ref(props.settings ?? { selected_days: ['Friday'], enabled: true });
+const settings = ref(props.settings ?? { selected_days: ['Friday'], enabled: true, default_start_time: '18:00:00', default_duration: 60 });
 const meetings = ref(props.meetings ?? []);
 const status = ref((props.flash && (props.flash as any).status) || null);
 
 const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
-const form = useForm({ selected_days: settings.value.selected_days ?? [] });
+const form = useForm({ selected_days: settings.value.selected_days ?? [], default_start_time: settings.value?.default_start_time ?? '18:00', default_duration: settings.value?.default_duration ?? 60 });
 
 // react to incoming prop changes from Inertia
 watch(
@@ -35,6 +36,16 @@ watch(
         if (newSettings) {
             settings.value = newSettings as any;
             form.selected_days = (newSettings as any).selected_days ?? form.selected_days;
+            // normalize start time for time input (H:i)
+            if ((newSettings as any).default_start_time) {
+                const dst = (newSettings as any).default_start_time;
+                // if milliseconds included, normalize to HH:MM
+                const parts = dst.split(':');
+                form.default_start_time = parts.length >= 2 ? `${parts[0].padStart(2,'0')}:${parts[1].padStart(2,'0')}` : dst;
+            } else {
+                form.default_start_time = '18:00';
+            }
+            form.default_duration = (newSettings as any).default_duration ?? form.default_duration;
         }
     },
     { immediate: true },
@@ -88,6 +99,12 @@ const runNow = () => {
 
 const enabled = computed(() => settings.value.enabled ?? true);
 
+const openDetails = (id?: number) => {
+    if (typeof id === 'undefined') return;
+    // navigate to the standalone meeting view page
+    router.get(`/meeting/${id}/view`);
+};
+
 // expose for template/type checking
 defineExpose({ toggleDay, save, toggleEnabled, runNow });
 </script>
@@ -126,6 +143,19 @@ defineExpose({ toggleDay, save, toggleEnabled, runNow });
                 <Button :disabled="form.processing" variant="default" @click.prevent="runNow">Run Now</Button>
             </div>
 
+            <div class="mt-4 grid grid-cols-2 gap-4 items-end">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Default start time</label>
+                    <input v-model="form.default_start_time" type="time" class="w-full border rounded px-3 py-2" />
+                    <p class="text-xs text-gray-500 mt-1">Used when scheduler creates meetings (HH:MM)</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Default duration (minutes)</label>
+                    <input v-model.number="form.default_duration" type="number" min="1" max="1440" class="w-full border rounded px-3 py-2" />
+                    <p class="text-xs text-gray-500 mt-1">Length of meeting in minutes</p>
+                </div>
+            </div>
+
             <div class="mt-6">
                 <h2 class="text-md font-medium mb-2">Meetings</h2>
                 <div class="overflow-auto bg-white rounded shadow-sm">
@@ -136,14 +166,16 @@ defineExpose({ toggleDay, save, toggleEnabled, runNow });
                                 <th class="p-2">Pin</th>
                                 <th class="p-2">Created at</th>
                                 <th class="p-2">Info</th>
+                                <th class="p-2">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="m in meetings" :key="m.id" class="border-t">
                                 <td class="p-2">{{ m.id }}</td>
                                 <td class="p-2">{{ m.pin }}</td>
-                                <td class="p-2"> {{ useDateFormat(m.created_at, 'YYYY-MM-DD  HH:mm:ss') }}</td>
+                                <td class="p-2"> {{ useDateFormat(m.created_at, 'YYYY-MM-DD  HH:mm:ss')}}</td>
                                 <td class="p-2">{{ m.info }}</td>
+                                <td class="p-2"><button @click.prevent="openDetails(m.id)"><Eye/></button></td>
                             </tr>
                         </tbody>
                     </table>

@@ -69,14 +69,39 @@ class RegController extends Controller
      */
     public function update(Request $request, Reg $reg)
     {
-        //
+        $data = $request->validate([
+            'name' => ['nullable','string','max:255'],
+            'number' => ['required','string','max:255'],
+        ]);
+
+        $reg->fill($data);
+        $reg->save();
+
+        if ($request->header('X-Inertia')) {
+            return Inertia::location(route('regs.index'));
+        }
+
+        return redirect()->route('regs.index')->with('status', 'Registrant updated');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Reg $reg)
+    public function destroy(Request $request, Reg $reg)
     {
-        //
+        // detach from meetings first
+        $reg->meeting()->detach();
+        $reg->delete();
+
+        // If AJAX / JSON request, return JSON so frontend can handle without HTML redirect
+        if ($request->ajax() || str_contains($request->header('Accept', ''), 'application/json')) {
+            return response()->json(['success' => true, 'message' => 'Registrant removed']);
+        }
+
+        if ($request->header('X-Inertia')) {
+            return Inertia::location(route('regs.index'));
+        }
+
+        return redirect()->route('regs.index')->with('status', 'Registrant removed');
     }
 }

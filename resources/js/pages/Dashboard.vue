@@ -38,10 +38,11 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <PlaceholderPattern />
                 </div>
                 <div class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border flex items-center justify-center">
-                    <a :href="meetingSettings.index().url" class="text-center">
-                        <div class="text-lg font-semibold">Meeting Settings</div>
-                        <div class="text-sm">Open settings to configure automatic meeting creation</div>
-                    </a>
+                    <div class="grid gap-2 text-center">
+                        <a :href="meetingSettings.index().url" class="underline">Meeting Settings</a>
+                        <a href="/reg-settings" class="text-lg font-semibold">Registrant Settings</a>
+                        <div class="text-sm">Manage registrants (edit/delete)</div>
+                    </div>
                 </div>
             </div>
             <div
