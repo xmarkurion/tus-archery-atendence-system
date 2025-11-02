@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { Inertia } from '@inertiajs/inertia';
+import debounce from 'lodash/debounce';
 import MPaginationSimple from '@/components/MPaginationSimple.vue';
 
 const props = defineProps<{ regs: any }>();
@@ -27,7 +30,40 @@ const form = useForm({ name: '', number: '' });
 const deleting = ref<number | null>(null);
 
 // search
-const search = ref('');
+// initialize search from the current querystring so the input reflects ?search= when the page loads
+const urlParams = new URLSearchParams(window.location.search);
+const initialSearch = urlParams.get('search') ?? '';
+const search = ref(initialSearch);
+
+// loading indicator during Inertia visits to avoid visual flicker
+const loading = ref(false);
+
+// wire Inertia events to set loading when navigating to /reg-settings
+const onStart = (event: any) => {
+    const url = event.visit?.url || '';
+    if (url.includes('/reg-settings')) loading.value = true;
+};
+// send search to server (debounced) so search is applied server-side and pagination works across pages
+const doSearch = debounce((q: string) => {
+    // reset to page 1 when searching; omit `search` param when empty
+    const page = 1;
+    const searchParam = (q || '').toString().trim();
+    const base = '/reg-settings';
+    let url = base + '?page=' + encodeURIComponent(String(page));
+    if (searchParam !== '') {
+        url += '&search=' + encodeURIComponent(searchParam);
+    }
+    // Call Inertia with query params to perform a SPA request (no full page reload).
+    // Use replace so rapid typing doesn't fill history, preserveScroll to keep scroll position.
+    const params: any = { page };
+    if (searchParam !== '') params.search = searchParam;
+    router.get('/reg-settings', params, { preserveState: true, preserveScroll: true, replace: true });
+}, 400);
+
+watch(search, (nv) => {
+    doSearch(nv);
+});
+
 const filteredRegs = computed(() => {
     const source = regs.value?.data ?? [];
     const q = (search.value || '').toString().trim().toLowerCase();

@@ -11,10 +11,21 @@ class RegController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Paginate regs server-side, 10 per page
-        $regs = Reg::orderBy('created_at', 'desc')->paginate(10);
+        // Server-side search and pagination for regs
+        $search = trim((string) $request->query('search', ''));
+
+        $query = Reg::query();
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('number', 'like', "%{$search}%");
+            });
+        }
+
+        $regs = $query->orderBy('created_at', 'desc')->paginate(10)->appends($request->only('search'));
+
         return Inertia::render('Regs/Index', [
             'regs' => $regs,
         ]);
