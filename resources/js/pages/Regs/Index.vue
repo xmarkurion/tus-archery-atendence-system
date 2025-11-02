@@ -3,7 +3,6 @@ import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { Inertia } from '@inertiajs/inertia';
 import debounce from 'lodash/debounce';
 import MPaginationSimple from '@/components/MPaginationSimple.vue';
 
@@ -40,9 +39,23 @@ const loading = ref(false);
 
 // wire Inertia events to set loading when navigating to /reg-settings
 const onStart = (event: any) => {
-    const url = event.visit?.url || '';
-    if (url.includes('/reg-settings')) loading.value = true;
+    const url = event?.visit?.url || '';
+    if (typeof url === 'string' && url.includes('/reg-settings')) loading.value = true;
 };
+const onFinish = () => { loading.value = false; };
+
+const InertiaGlobal = (window as any).Inertia;
+if (InertiaGlobal && InertiaGlobal.on) {
+    InertiaGlobal.on('start', onStart);
+    InertiaGlobal.on('finish', onFinish);
+}
+onUnmounted(() => {
+    if (InertiaGlobal && InertiaGlobal.off) {
+        InertiaGlobal.off('start', onStart);
+        InertiaGlobal.off('finish', onFinish);
+    }
+});
+
 // send search to server (debounced) so search is applied server-side and pagination works across pages
 const doSearch = debounce((q: string) => {
     // reset to page 1 when searching; omit `search` param when empty
@@ -149,8 +162,8 @@ const deleteReg = async (id: number) => {
 <template>
     <Head title="Registrants" />
     <AppLayout>
-        <div class="px-2 sm:px-4 lg:px-6 py-6 w-full">
-            <div class="max-w-4xl mx-auto">
+        <div class="px-2 py-6 w-full">
+            <div class="w-full">
                 <h1 class="text-2xl font-semibold mb-2">Registrant Settings</h1>
                 <div class="mb-3">
                     <input v-model="search" type="search" placeholder="Search registrants by name or number..." class="w-full border rounded p-2" />
