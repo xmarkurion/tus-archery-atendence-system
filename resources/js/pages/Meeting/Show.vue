@@ -143,7 +143,8 @@ const goBack = () => window.history.back();
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <!-- Changed: make a 3-column grid for Start / End / PIN -->
+            <div class="grid grid-cols-3 gap-4 mb-4">
                 <div>
                     <label class="block text-sm">Start time</label>
                     <input v-model="form.start_time" type="datetime-local" class="w-full border rounded p-2" />
@@ -152,16 +153,15 @@ const goBack = () => window.history.back();
                     <label class="block text-sm">End time</label>
                     <input v-model="form.end_time" type="datetime-local" class="w-full border rounded p-2" />
                 </div>
+                <div>
+                    <label class="block text-sm">PIN</label>
+                    <input v-model="form.pin" type="text" class="w-full border rounded p-2" />
+                </div>
             </div>
 
             <div class="mb-4">
                 <label class="block text-sm">Info</label>
                 <input v-model="form.info" type="text" class="w-full border rounded p-2" />
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm">PIN</label>
-                <input v-model="form.pin" type="text" class="w-full border rounded p-2" />
             </div>
 
             <div class="mb-4">
