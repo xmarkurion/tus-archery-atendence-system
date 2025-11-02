@@ -13,11 +13,13 @@ class MeetingSettingsController extends Controller
     public function index()
     {
         $settings = MeetingSetting::first();
-        $meetings = Meeting::orderBy('start_time', 'desc')->get();
+        // paginate meetings server-side, 10 per page
+        $meetings = Meeting::orderBy('start_time', 'desc')->paginate(10);
 
         return Inertia::render('MeetingsSettings', [
             'settings' => $settings ? $settings->toArray() : null,
-            'meetings' => $meetings->toArray(),
+            // pass the paginator directly so Inertia serializes it into { data, meta, links }
+            'meetings' => $meetings,
         ]);
     }
 

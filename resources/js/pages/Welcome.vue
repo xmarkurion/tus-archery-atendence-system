@@ -2,6 +2,8 @@
 import { dashboard, login } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import { ref, onBeforeUnmount, onMounted, computed } from 'vue';
+import { useDateFormat } from '@vueuse/core';
+
 
 withDefaults(
     defineProps<{
@@ -228,12 +230,11 @@ onMounted(() => {
                     <!-- Inserted centered quick registration form -->
                     <div class="mt-8 flex items-center justify-center">
                         <div class="w-full max-w-md bg-white dark:bg-[#0b0b0b] p-6 rounded shadow text-center">
-                            <p class="mb-3 font-medium">HERE</p>
+                            <p class="mb-3 font-medium">Session | {{ useDateFormat(meeting.start_time, 'YYYY-MM-DD') }}</p>
                             <div v-if="meeting == null">
                                 <p class="mb-2">No session today.</p>
                             </div>
                             <div v-else>
-                                <p class="mb-2">Session today at {{ meeting.start_time }}</p>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">
                                     Attendees: {{ meeting.sessions_attended ?? 0 }}
                                 </p>

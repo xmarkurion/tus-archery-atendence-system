@@ -13,8 +13,8 @@ class RegController extends Controller
      */
     public function index()
     {
-        // Return latest 50 regs for optional admin view
-        $regs = Reg::latest()->take(50)->get();
+        // Paginate regs server-side, 10 per page
+        $regs = Reg::orderBy('created_at', 'desc')->paginate(10);
         return Inertia::render('Regs/Index', [
             'regs' => $regs,
         ]);

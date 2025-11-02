@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 
@@ -7,6 +7,17 @@ const props = defineProps<{ meeting: any }>();
 
 const meeting = ref(props.meeting ?? null);
 const form = useForm({ start_time: meeting.value.start_time ?? '', end_time: meeting.value.end_time ?? '', info: meeting.value.info ?? '', pin: meeting.value.pin ?? '' });
+
+// search for attendees
+const search = ref('');
+const filteredRegs = computed(() => {
+    if (!meeting.value || !Array.isArray(meeting.value.regs)) return [];
+    const q = (search.value || '').toString().trim().toLowerCase();
+    if (!q) return meeting.value.regs;
+    return meeting.value.regs.filter((r: any) => {
+        return ((r.name || '') + ' ' + (r.number || '')).toLowerCase().includes(q);
+    });
+});
 
 // helper to read cookie (used for CSRF/XSRF)
 const getCookie = (name: string) => {
@@ -83,7 +94,7 @@ const goBack = () => window.history.back();
 <template>
     <Head title="Meeting" />
     <AppLayout>
-        <div class="px-4 sm:px-6 lg:px-8 py-6 w-full">
+        <div class="px-2 sm:px-4 lg:px-6 py-6 w-full">
             <div class="flex items-center justify-between mb-4">
                 <h1 class="text-2xl font-semibold">Meeting #{{ meeting?.id }}</h1>
                 <div class="flex gap-2">
@@ -118,9 +129,15 @@ const goBack = () => window.history.back();
             </div>
 
             <div>
-                <h2 class="text-lg font-medium mb-2">Attendees ({{ meeting?.sessions_attended ?? 0 }})</h2>
-                <div class="overflow-x-auto bg-white rounded shadow">
-                    <table class="w-full">
+                <!-- search bar -->
+                <div class="mb-3">
+                    <input v-model="search" type="search" placeholder="Search attendees by name or number..." class="w-full border rounded p-2" />
+                </div>
+
+                <h2 class="text-lg font-medium mb-2">Attendees ({{ filteredRegs.length }} / {{ meeting?.regs?.length ?? 0 }})</h2>
+
+                <div class="overflow-x-auto bg-white rounded shadow w-full p-2">
+                    <table class="min-w-full">
                         <thead>
                             <tr class="text-left">
                                 <th class="p-2">#</th>
@@ -131,12 +148,15 @@ const goBack = () => window.history.back();
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(r, i) in meeting?.regs" :key="r.id" class="border-t">
+                            <tr v-for="(r, i) in filteredRegs" :key="r.id" class="border-t">
                                 <td class="p-2">{{ i + 1 }}</td>
                                 <td class="p-2">{{ r.name }}</td>
                                 <td class="p-2">{{ r.number }}</td>
                                 <td class="p-2">{{ r.sessions_attended }}</td>
                                 <td class="p-2"><button @click.prevent="removeAttendee(r.id)" class="text-red-600">Remove</button></td>
+                            </tr>
+                            <tr v-if="filteredRegs.length === 0" class="border-t">
+                                <td class="p-2" colspan="5">No attendees found.</td>
                             </tr>
                         </tbody>
                     </table>

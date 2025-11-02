@@ -1,28 +1,24 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import settingsRoutes from '@/routes/meeting/settings';
 import { Button } from '@/components/ui/button';
 import { useDateFormat } from '@vueuse/core'
 import { Eye, Trash } from 'lucide-vue-next';
+import MPaginationSimple from '@/components/MPaginationSimple.vue';
 
 // typed props from Inertia
 const props = defineProps<{
     settings?: { selected_days?: string[]; enabled?: boolean; default_start_time?: string; default_duration?: number } | null;
-    meetings?: Array<{
-        id?: number;
-        start_time?: string;
-        end_time?: string | null;
-        info?: string
-        created_at?: string;
-        pin?: string;
-    }>;
+    // meetings is now a paginated object: { data: [], meta: { current_page, last_page, total }, links: [] }
+    meetings?: any;
     flash?: { status?: string } | null;
 }>();
 
 const settings = ref(props.settings ?? { selected_days: ['Friday'], enabled: true, default_start_time: '18:00:00', default_duration: 60 });
-const meetings = ref(props.meetings ?? []);
+// default shape for paginated meetings
+const meetings = ref(props.meetings ?? { data: [], meta: { current_page: 1, last_page: 1, per_page: 10, total: 0 }, links: [] });
 const status = ref((props.flash && (props.flash as any).status) || null);
 
 const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -54,7 +50,7 @@ watch(
 watch(
     () => props.meetings,
     (newMeetings) => {
-        meetings.value = newMeetings ?? [];
+        if (newMeetings) meetings.value = newMeetings;
     },
     { immediate: true },
 );
@@ -101,7 +97,27 @@ const enabled = computed(() => settings.value.enabled ?? true);
 
 const deletingMeeting = ref<number | null>(null);
 
-// helper to read cookie (used for CSRF/XSRF)
+// Pagination helpers using server-provided meta
+const items = computed(() => meetings.value?.data ?? []);
+const meta = computed(() => meetings.value?.meta ?? { current_page: 1, last_page: 1, per_page: 10, total: 0 });
+const totalPages = computed(() => Math.max(1, meta.value.last_page || 1));
+const currentPage = computed(() => meta.value.current_page || 1);
+// pages not needed when using MPaginationSimple
+
+// remove pageLinks/visitUrl/normalizeUrl complexity; use numeric pages and Inertia router.get to request server page
+onMounted(() => {
+    try {
+        console.debug('MeetingsSettings mounted, meetings prop:', meetings.value);
+        console.debug('Pagination meta:', meta.value);
+    } catch {
+        // ignore
+    }
+});
+
+watch(meetings, (nv) => {
+    console.debug('Meetings prop changed:', nv);
+});
+
 const getCookie = (name: string) => {
     const match = document.cookie.match(new RegExp('(^|;)\\s*' + name + '=([^;]+)'));
     return match ? decodeURIComponent(match[2]) : null;
@@ -151,12 +167,12 @@ const deleteMeeting = async (id?: number) => {
             const j = await res.json().catch(() => null);
             if (j && j.success) {
                 // refresh meetings list
-                router.get(settingsRoutes.index().url, {}, { preserveState: false });
+                router.get(settingsRoutes.index.url(), {}, { preserveState: false });
             } else {
                 alert(j?.message || 'Failed to delete meeting');
             }
         } else {
-            router.get(settingsRoutes.index().url, {}, { preserveState: false });
+            router.get(settingsRoutes.index.url(), {}, { preserveState: false });
         }
     } catch (err) {
         console.error('deleteMeeting error', err);
@@ -166,8 +182,29 @@ const deleteMeeting = async (id?: number) => {
     }
 };
 
+// remove goToPage/prevPage/nextPage navigation complexity; we'll use MPaginationSimple for links
+// keep these functions in case buttons are used
+const goToPage = (p: number) => {
+    if (p < 1) p = 1;
+    if (p > totalPages.value) p = totalPages.value;
+    const url = settingsRoutes.index.url({ query: { page: p } });
+    router.get(url, {}, { preserveState: false });
+};
+
+const prevPage = () => {
+    const p = (meta.value.current_page ?? 1) - 1;
+    if (p < 1) return;
+    goToPage(p);
+};
+
+const nextPage = () => {
+    const p = (meta.value.current_page ?? 1) + 1;
+    if (p > totalPages.value) return;
+    goToPage(p);
+};
+
 // expose for template/type checking
-defineExpose({ toggleDay, save, toggleEnabled, runNow });
+defineExpose({ toggleDay, save, toggleEnabled, runNow, goToPage, prevPage, nextPage, deleteMeeting, openDetails });
 </script>
 
 <template>
@@ -231,7 +268,7 @@ defineExpose({ toggleDay, save, toggleEnabled, runNow });
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="m in meetings" :key="m.id" class="border-t">
+                            <tr v-for="m in items" :key="m.id" class="border-t">
                                 <td class="p-2">{{ m.id }}</td>
                                 <td class="p-2">{{ m.pin }}</td>
                                 <td class="p-2"> {{ useDateFormat(m.created_at, 'YYYY-MM-DD  HH:mm:ss')}}</td>
@@ -244,8 +281,19 @@ defineExpose({ toggleDay, save, toggleEnabled, runNow });
                                     </button>
                                 </td>
                              </tr>
+                             <tr v-if="(items && items.length) === 0" class="border-t">
+                                <td class="p-2" colspan="5">No meetings found.</td>
+                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Pagination controls -->
+                <div class="flex items-center justify-between mt-3">
+                    <div class="text-sm text-gray-600">Page {{ currentPage }} of {{ totalPages }} — Total: {{ meta.total }}</div>
+                    <div class="flex items-center gap-2">
+                        <MPaginationSimple :items="meetings" class="flex gap-1" />
+                    </div>
                 </div>
             </div>
         </div>

@@ -22,16 +22,29 @@ const breadcrumbs: BreadcrumbItem[] = [
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
             <div class="grid auto-rows-min gap-4 md:grid-cols-3">
+                <a :href="meetingSettings.index().url">
                 <div
                     class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
                 >
-                    <PlaceholderPattern />
+                    <div class="grid gap-2 text-center justify-items-center p-4">
+                        <span class="underline">Meeting Settings</span>
+                        Adjust change meeting settings such as time, info, and PIN.
+                    </div>
+
                 </div>
+                </a>
+
+                <a href="/reg-settings">
                 <div
                     class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
                 >
-                    <PlaceholderPattern />
+                    <div class="grid gap-2 text-center justify-items-center p-4">
+                        <span class="underline">Registrant Settings</span>
+                        <div class="text-sm">Manage registrants (edit/delete)</div>
+                    </div>
                 </div>
+                </a>
+
                 <div
                     class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
                 >
@@ -40,8 +53,6 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <div class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border flex items-center justify-center">
                     <div class="grid gap-2 text-center">
                         <a :href="meetingSettings.index().url" class="underline">Meeting Settings</a>
-                        <a href="/reg-settings" class="text-lg font-semibold">Registrant Settings</a>
-                        <div class="text-sm">Manage registrants (edit/delete)</div>
                     </div>
                 </div>
             </div>

@@ -1,13 +1,39 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
+import MPaginationSimple from '@/components/MPaginationSimple.vue';
 
-const props = defineProps<{ regs: any[] }>();
-const regs = ref(props.regs || []);
+const props = defineProps<{ regs: any }>();
+// regs prop is a paginator object: { data: [], meta: {}, links: [] }
+const regs = ref(props.regs ?? { data: [], meta: { current_page: 1, last_page: 1, total: 0 }, links: [] });
+
+// keep local regs in sync when Inertia updates props
+watch(
+    () => props.regs,
+    (nv) => {
+        regs.value = nv ?? { data: [], meta: { current_page: 1, last_page: 1, total: 0 }, links: [] };
+    },
+    { immediate: true }
+);
+
+// safe meta computed so template doesn't access undefined
+const meta = computed(() => {
+    return regs.value?.meta ?? { current_page: 1, last_page: 1, total: 0, links: [] };
+});
+
 const editing = ref<number | null>(null);
 const form = useForm({ name: '', number: '' });
 const deleting = ref<number | null>(null);
+
+// search
+const search = ref('');
+const filteredRegs = computed(() => {
+    const source = regs.value?.data ?? [];
+    const q = (search.value || '').toString().trim().toLowerCase();
+    if (!q) return source;
+    return source.filter((r: any) => (((r.name || '') + ' ' + (r.number || '')).toLowerCase().includes(q)));
+});
 
 const startEdit = (r: any) => {
     editing.value = r.id;
@@ -87,51 +113,65 @@ const deleteReg = async (id: number) => {
 <template>
     <Head title="Registrants" />
     <AppLayout>
-        <div class="p-6 max-w-4xl mx-auto">
-            <h1 class="text-2xl font-semibold mb-4">Registrant Settings</h1>
-            <div class="overflow-auto bg-white rounded shadow">
-                <table class="w-full">
-                    <thead>
-                        <tr class="text-left">
-                            <th class="p-2">ID</th>
-                            <th class="p-2">Name</th>
-                            <th class="p-2">Number</th>
-                            <th class="p-2">Sessions</th>
-                            <th class="p-2">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="r in regs" :key="r.id" class="border-t">
-                            <td class="p-2">{{ r.id }}</td>
-                            <td class="p-2">
-                                <template v-if="editing === r.id">
-                                    <input v-model="form.name" class="w-full border rounded p-1" />
-                                </template>
-                                <template v-else>{{ r.name }}</template>
-                            </td>
-                            <td class="p-2">
-                                <template v-if="editing === r.id">
-                                    <input v-model="form.number" class="w-full border rounded p-1" />
-                                </template>
-                                <template v-else>{{ r.number }}</template>
-                            </td>
-                            <td class="p-2">{{ r.sessions_attended }}</td>
-                            <td class="p-2">
-                                <template v-if="editing === r.id">
-                                    <button @click.prevent="saveEdit(r.id)" class="px-2 py-1 bg-primary text-white rounded">Save</button>
-                                    <button @click.prevent="cancelEdit" class="px-2 py-1 ml-2 rounded border">Cancel</button>
-                                </template>
-                                <template v-else>
-                                    <button @click.prevent="startEdit(r)" class="px-2 py-1 bg-gray-100 rounded">Edit</button>
-                                    <button @click.prevent="deleteReg(r.id)" class="px-2 py-1 ml-2 text-red-600" :disabled="deleting === r.id">
-                                        <span v-if="deleting === r.id" class="animate-spin">⏳</span>
-                                        <span v-else>Delete</span>
-                                    </button>
-                                </template>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="px-2 sm:px-4 lg:px-6 py-6 w-full">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-2xl font-semibold mb-2">Registrant Settings</h1>
+                <div class="mb-3">
+                    <input v-model="search" type="search" placeholder="Search registrants by name or number..." class="w-full border rounded p-2" />
+                </div>
+                <div class="mb-4 text-sm text-gray-600">Showing {{ filteredRegs.length }} of {{ meta.total }}</div>
+
+                <div class="overflow-auto bg-white rounded shadow">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left">
+                                <th class="p-2">ID</th>
+                                <th class="p-2">Name</th>
+                                <th class="p-2">Number</th>
+                                <th class="p-2">Sessions</th>
+                                <th class="p-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="r in filteredRegs" :key="r.id" class="border-t">
+                                <td class="p-2">{{ r.id }}</td>
+                                <td class="p-2">
+                                    <template v-if="editing === r.id">
+                                        <input v-model="form.name" class="w-full border rounded p-1" />
+                                    </template>
+                                    <template v-else>{{ r.name }}</template>
+                                </td>
+                                <td class="p-2">
+                                    <template v-if="editing === r.id">
+                                        <input v-model="form.number" class="w-full border rounded p-1" />
+                                    </template>
+                                    <template v-else>{{ r.number }}</template>
+                                </td>
+                                <td class="p-2">{{ r.sessions_attended }}</td>
+                                <td class="p-2">
+                                    <template v-if="editing === r.id">
+                                        <button @click.prevent="saveEdit(r.id)" class="px-2 py-1 bg-primary text-white rounded">Save</button>
+                                        <button @click.prevent="cancelEdit" class="px-2 py-1 ml-2 rounded border">Cancel</button>
+                                    </template>
+                                    <template v-else>
+                                        <button @click.prevent="startEdit(r)" class="px-2 py-1 bg-gray-100 rounded">Edit</button>
+                                        <button @click.prevent="deleteReg(r.id)" class="px-2 py-1 ml-2 text-red-600" :disabled="deleting === r.id">
+                                            <span v-if="deleting === r.id" class="animate-spin">⏳</span>
+                                            <span v-else>Delete</span>
+                                        </button>
+                                    </template>
+                                </td>
+                            </tr>
+                            <tr v-if="filteredRegs.length === 0" class="border-t">
+                                <td class="p-2" colspan="5">No registrants found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4">
+                    <MPaginationSimple :items="regs" />
+                </div>
             </div>
         </div>
     </AppLayout>

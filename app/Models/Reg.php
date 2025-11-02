@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Reg extends Model
 {
+    use HasFactory;
+
     // Allow mass assignment for name and number
     protected $fillable = ['name', 'number', 'sessions_attended'];
 
