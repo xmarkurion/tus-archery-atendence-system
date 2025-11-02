@@ -21,14 +21,16 @@ const breadcrumbs: BreadcrumbItem[] = [
         <div
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
-            <div class="grid auto-rows-min gap-4 md:grid-cols-3">
+            <div class="grid auto-rows-min gap-4 md:grid-cols-2">
                 <a :href="meetingSettings.index().url">
                 <div
                     class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
                 >
-                    <div class="grid gap-2 text-center justify-items-center p-4">
-                        <span class="underline">Meeting Settings</span>
-                        Adjust change meeting settings such as time, info, and PIN.
+                    <div class="grid gap-1 text-center justify-items-center p-4">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <span class="underline">Meeting Settings</span>
+                            Adjust change meeting settings such as time, info, and PIN.
+                        </div>
                     </div>
 
                 </div>
@@ -38,23 +40,13 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <div
                     class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
                 >
-                    <div class="grid gap-2 text-center justify-items-center p-4">
+                    <div class="grid gap-1 text-center justify-items-center p-4">
                         <span class="underline">Registrant Settings</span>
                         <div class="text-sm">Manage registrants (edit/delete)</div>
                     </div>
                 </div>
                 </a>
 
-                <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-                >
-                    <PlaceholderPattern />
-                </div>
-                <div class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border flex items-center justify-center">
-                    <div class="grid gap-2 text-center">
-                        <a :href="meetingSettings.index().url" class="underline">Meeting Settings</a>
-                    </div>
-                </div>
             </div>
             <div
                 class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
@@ -64,3 +56,12 @@ const breadcrumbs: BreadcrumbItem[] = [
         </div>
     </AppLayout>
 </template>
+
+<style>
+.box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dotted rgb(96 139 168);
+}
+</style>

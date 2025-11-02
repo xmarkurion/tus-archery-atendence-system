@@ -6,7 +6,32 @@ import AppLayout from '@/layouts/AppLayout.vue';
 const props = defineProps<{ meeting: any }>();
 
 const meeting = ref(props.meeting ?? null);
-const form = useForm({ start_time: meeting.value.start_time ?? '', end_time: meeting.value.end_time ?? '', info: meeting.value.info ?? '', pin: meeting.value.pin ?? '' });
+
+// helper: convert DB datetime ("YYYY-MM-DD HH:MM:SS") to datetime-local ("YYYY-MM-DDTHH:MM")
+const formatForDatetimeLocal = (dbDate: string | null | undefined) => {
+    if (!dbDate) return '';
+    // Accept both "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD HH:MM"
+    const s = dbDate.toString().trim();
+    // replace space with T and cut seconds if present
+    const t = s.replace(' ', 'T');
+    return t.length >= 16 ? t.slice(0, 16) : t;
+};
+
+// helper: convert datetime-local back to DB format "YYYY-MM-DD HH:MM:SS"
+const toDbDateTime = (local: string | null | undefined) => {
+    if (!local) return null;
+    const s = local.toString().trim().replace('T', ' ');
+    // ensure seconds
+    return s.length === 16 ? `${s}:00` : s; // if user somehow provides without minutes
+};
+
+// init form with values converted to datetime-local for inputs
+const form = useForm({
+    start_time: formatForDatetimeLocal(meeting.value?.start_time ?? ''),
+    end_time: formatForDatetimeLocal(meeting.value?.end_time ?? ''),
+    info: meeting.value?.info ?? '',
+    pin: meeting.value?.pin ?? ''
+});
 
 // search for attendees
 const search = ref('');
@@ -27,6 +52,21 @@ const getCookie = (name: string) => {
 
 const save = () => {
     if (!meeting.value) return;
+
+    // Prepare payload: convert datetime-local back to DB datetime format
+    const payload = {
+        start_time: toDbDateTime(form.start_time),
+        end_time: toDbDateTime(form.end_time),
+        info: form.info,
+        pin: form.pin
+    };
+
+    // assign converted values into the form before posting (useForm expects form fields)
+    form.start_time = payload.start_time ?? '';
+    form.end_time = payload.end_time ?? '';
+    form.info = payload.info ?? '';
+    form.pin = payload.pin ?? '';
+
     form.post(`/meeting/${meeting.value.id}/update`, {
         onSuccess: () => {
             // server issues redirect via Inertia; we'll just let that happen
