@@ -53,4 +53,7 @@ Route::post('/api/meeting/register', [MeetingRegistrationController::class, 'api
 // Allow visiting the endpoint directly (GET) or calling it programmatically (POST)
 Route::match(['get', 'post'], '/api/meeting/create', [MeetingRegistrationController::class, 'apiCreateTodayWithPin']);
 
+// Authenticated route: returns today's meeting including pin (only for logged-in users)
+Route::middleware(['auth'])->get('/api/meeting/today/with-pin', [MeetingRegistrationController::class, 'apiTodayWithPin']);
+
 require __DIR__.'/settings.php';

@@ -3,8 +3,9 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import PlaceholderPattern from '../components/PlaceholderPattern.vue';
 import meetingSettings from '@/routes/meeting/settings';
+import { ref, onMounted, computed } from 'vue';
+import { useDateFormat } from '@vueuse/core';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -12,6 +13,44 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: dashboard().url,
     },
 ];
+
+// meeting state for dashboard display
+const meeting = ref<any | null>(null);
+
+const formattedDate = computed(() => {
+    if (!meeting.value || !meeting.value.start_time) return '';
+    try {
+        return useDateFormat(meeting.value.start_time, 'YYYY-MM-DD').value || '';
+    } catch {
+        return '';
+    }
+});
+
+async function loadTodayMeeting() {
+    try {
+        // Use the authenticated endpoint that includes the PIN for logged-in users
+        const res = await fetch(`${window.location.origin}/api/meeting/today/with-pin`, { credentials: 'same-origin' });
+        if (!res.ok) {
+            // If not authorized or not found, treat as "no meeting" on the dashboard
+            if (res.status === 401 || res.status === 403) {
+                meeting.value = null;
+                return;
+            }
+            console.warn('loadTodayMeeting -> non-ok response', res.status);
+            meeting.value = null;
+            return;
+        }
+        const data = await res.json();
+        meeting.value = data.meeting;
+    } catch (err) {
+        console.error('loadTodayMeeting', err);
+        meeting.value = null;
+    }
+}
+
+onMounted(() => {
+    void loadTodayMeeting();
+});
 </script>
 
 <template>
@@ -51,7 +90,18 @@ const breadcrumbs: BreadcrumbItem[] = [
             <div
                 class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
             >
-                <PlaceholderPattern />
+                <div class="flex h-full w-full items-center justify-center p-8">
+                    <div class="text-center">
+                        <template v-if="meeting">
+                            <div class="text-6xl font-extrabold tracking-tight">{{ meeting.pin ?? '—' }}</div>
+                            <div class="mt-4 text-sm text-gray-500 dark:text-gray-400">Session | {{ formattedDate }}</div>
+                            <div class="mt-2 max-w-xl text-sm text-gray-700 dark:text-gray-300">{{ meeting.info ?? '' }}</div>
+                        </template>
+                        <template v-else>
+                            <div class="text-3xl font-semibold">No meeting today</div>
+                        </template>
+                    </div>
+                </div>
             </div>
         </div>
     </AppLayout>

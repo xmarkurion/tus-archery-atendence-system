@@ -84,6 +84,26 @@ class MeetingRegistrationController extends Controller
         ]);
     }
 
+    // Authenticated API: return meeting info for today including the pin (protected route)
+    public function apiTodayWithPin(Request $request)
+    {
+        $meeting = Meeting::whereDate('start_time', now()->toDateString())->first();
+        if (! $meeting) {
+            return response()->json(['meeting' => null]);
+        }
+
+        return response()->json([
+            'meeting' => [
+                'id' => $meeting->id,
+                'start_time' => $meeting->start_time ? $meeting->start_time->toDateTimeString() : null,
+                'pin' => $meeting->pin,
+                'requires_pin' => ! empty($meeting->pin),
+                'sessions_attended' => (int) $meeting->sessions_attended,
+                'info' => $meeting->info,
+            ],
+        ]);
+    }
+
     // Public API: verify provided pin for meeting
     public function apiVerifyPin(Request $request)
     {
