@@ -56,6 +56,17 @@ const canRegisterLocal = computed(() => {
     return meeting.value !== null && (!pinNeeded.value || pinVerified.value);
 });
 
+// Safe formatted date to avoid accessing meeting.start_time when meeting is null
+const formattedDate = computed(() => {
+    if (!meeting.value || !meeting.value.start_time) return '';
+    try {
+        // useDateFormat returns a ref; read .value to get the formatted string
+        return useDateFormat(meeting.value.start_time, 'YYYY-MM-DD').value || '';
+    } catch {
+        return '';
+    }
+});
+
 async function loadTodayMeeting() {
     try {
         const url = `${window.location.origin}/api/meeting/today`;
@@ -230,7 +241,7 @@ onMounted(() => {
                     <!-- Inserted centered quick registration form -->
                     <div class="mt-8 flex items-center justify-center">
                         <div class="w-full max-w-md bg-white dark:bg-[#0b0b0b] p-6 rounded shadow text-center">
-                            <p class="mb-3 font-medium">Session | {{ useDateFormat(meeting.start_time, 'YYYY-MM-DD') }}</p>
+                            <p class="mb-3 font-medium">Session | {{ formattedDate }}</p>
                             <div v-if="meeting == null">
                                 <p class="mb-2">No session today.</p>
                             </div>

@@ -10,8 +10,8 @@ use App\Http\Controllers\MeetingRegistrationController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-//        'canRegister' => false,
+//        'canRegister' => Features::enabled(Features::registration()),
+        'canRegister' => false,
     ]);
 })->name('home');
 
