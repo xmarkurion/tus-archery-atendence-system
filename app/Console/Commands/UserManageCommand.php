@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Hash;
 
 class UserManageCommand extends Command
 {
-    protected $signature = 'user:manage {action} {--id=} {--email=} {--name=} {--new-email=} {--new-name=} {--password=}';
+    protected $signature = 'user:manage {action} {--id=} {--email=} {--name=} {--new-email=} {--new-name=} {--password=} {--new-password=}';
     protected $description = 'Manage users: create, list, remove, update';
 
     public function handle()
