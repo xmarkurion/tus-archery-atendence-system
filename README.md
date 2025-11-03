@@ -44,6 +44,22 @@ or
 ## Update a user’s name or email:
 ```php artisan user:manage update --id=1 --new-name="Jane Doe" --new-email="jane@example.com"```
 
+## Change password
+```
+php artisan user:manage update --id=USER_ID --new-password="newpassword"
+```
+
+```
+php artisan user:manage update --email="user@example.com" --new-password="newpassword"
+```
+
+**php artisan user:manage update --email="user@example.com" --new-password="newpassword"**
+
+
+##
+php artisan list | findstr user:manage
+
+
 # Other
 ## Tools:
 - [Vue use](https://vueuse.org/guide/)

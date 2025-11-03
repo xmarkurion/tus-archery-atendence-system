@@ -101,6 +101,7 @@ class UserManageCommand extends Command
         }
         $newEmail = $this->option('new-email');
         $newName = $this->option('new-name');
+        $newPassword = $this->option('new-password');
         $updated = false;
         if ($newEmail) {
             if (User::where('email', $newEmail)->exists()) {
@@ -114,12 +115,20 @@ class UserManageCommand extends Command
             $user->name = $newName;
             $updated = true;
         }
+        if ($newPassword !== null) {
+            if (empty($newPassword)) {
+                $this->error('New password cannot be empty.');
+                return;
+            }
+            $user->password = Hash::make($newPassword);
+            $updated = true;
+            $this->info('Password updated.');
+        }
         if ($updated) {
             $user->save();
             $this->info("User updated: ID {$user->id}, Name {$user->name}, Email {$user->email}");
         } else {
-            $this->info('No changes made. Use --new-email or --new-name.');
+            $this->info('No changes made. Use --new-email, --new-name, or --new-password.');
         }
     }
 }
-
