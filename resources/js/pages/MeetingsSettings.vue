@@ -213,89 +213,101 @@ defineExpose({ toggleDay, save, toggleEnabled, runNow, goToPage, prevPage, nextP
     <AppLayout :breadcrumbs="[{ title: 'Meetings', href: settingsRoutes.index().url }]">
         <div class="p-4">
             <div class="mb-4">
-                <h1 class="text-lg font-semibold">Meeting Settings</h1>
+                <h1 class="text-lg font-semibold dark:text-gray-100">Meeting Settings</h1>
             </div>
 
             <div v-if="status" class="mb-4">
-                <div class="rounded bg-green-100 px-4 py-2 text-green-800">{{ status }}</div>
+                <div class="rounded bg-green-100 px-4 py-2 text-green-800 dark:bg-green-900 dark:text-green-200">{{ status }}</div>
             </div>
 
             <div class="mb-4">
-                <label class="block font-medium mb-2">Select days for auto-creation:</label>
+                <label class="block font-medium mb-2 dark:text-gray-200">Select days for auto-creation:</label>
                 <div class="flex flex-wrap gap-2">
                     <button
                         v-for="day in days"
                         :key="day"
-                        :class="['px-3 py-1 rounded', form.selected_days.includes(day) ? 'bg-primary text-white' : 'bg-gray-100']"
+                        :aria-pressed="form.selected_days.includes(day) ? 'true' : 'false'"
+                        :class="[
+                            'px-3 py-1 rounded focus:outline-none transition-shadow',
+                            'focus:ring-2 focus:ring-red-300',
+                            form.selected_days.includes(day)
+                                ? 'bg-red-600 text-white border-2 border-red-700 shadow-md hover:bg-red-700 dark:bg-red-600 dark:text-white dark:border-red-700'
+                                : 'bg-gray-100 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        ]"
                         type="button"
                         @click="toggleDay(day)"
                     >
-                        {{ day }}
+                        <span class="inline-flex items-center gap-2">
+                            <span>{{ day }}</span>
+                            <span v-if="form.selected_days.includes(day)" class="font-bold text-white">✓</span>
+                        </span>
                     </button>
                 </div>
             </div>
 
             <div class="flex gap-2">
-                <Button :disabled="form.processing" @click.prevent="save">Save</Button>
-                <Button :disabled="form.processing" variant="secondary" @click.prevent="toggleEnabled">{{ enabled ? 'Stop Automatic Creation' : 'Start Automatic Creation' }}</Button>
-                <Button :disabled="form.processing" variant="default" @click.prevent="runNow">Run Now</Button>
+                <Button :disabled="form.processing" @click.prevent="save"
+                        class="dark:text-dark">
+
+                    Save</Button>
+                <Button :disabled="form.processing" variant="secondary" @click.prevent="toggleEnabled" class="dark:text-white">{{ enabled ? 'Stop Automatic Creation' : 'Start Automatic Creation' }}</Button>
+                <Button :disabled="form.processing" variant="default" @click.prevent="runNow" class="dark:text-dark">Run Now</Button>
             </div>
 
             <div class="mt-4 grid grid-cols-2 gap-4 items-end">
                 <div>
-                    <label class="block text-sm font-medium mb-1">Default start time</label>
-                    <input v-model="form.default_start_time" type="time" class="w-full border rounded px-3 py-2" />
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-200">Default start time</label>
+                    <input v-model="form.default_start_time" type="time" class="w-full border rounded px-3 py-2 bg-white text-gray-900 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
                     <p class="text-xs text-gray-500 mt-1">Used when scheduler creates meetings (HH:MM)</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Default duration (minutes)</label>
-                    <input v-model.number="form.default_duration" type="number" min="1" max="1440" class="w-full border rounded px-3 py-2" />
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-200">Default duration (minutes)</label>
+                    <input v-model.number="form.default_duration" type="number" min="1" max="1440" class="w-full border rounded px-3 py-2 bg-white text-gray-900 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
                     <p class="text-xs text-gray-500 mt-1">Length of meeting in minutes</p>
                 </div>
             </div>
 
             <div class="mt-6">
-                <h2 class="text-md font-medium mb-2">Meetings</h2>
-                <div class="overflow-auto bg-white rounded shadow-sm">
+                <h2 class="text-md font-medium mb-2 dark:text-gray-100">Meetings</h2>
+                <div class="overflow-auto bg-white dark:bg-gray-800 rounded shadow-sm">
                     <table class="w-full table-auto">
                         <thead>
                             <tr class="text-left">
-                                <th class="p-2">ID</th>
-                                <th class="p-2">Pin</th>
-                                <th class="p-2">Created at</th>
-                                <th class="p-2">Info</th>
-                                <th class="p-2">Action</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">ID</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Pin</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Created at</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Info</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="m in items" :key="m.id" class="border-t">
-                                <td class="p-2">{{ m.id }}</td>
-                                <td class="p-2">{{ m.pin }}</td>
-                                <td class="p-2"> {{ useDateFormat(m.created_at, 'YYYY-MM-DD  HH:mm:ss')}}</td>
-                                <td class="p-2">{{ m.info }}</td>
+                            <tr v-for="m in items" :key="m.id" class="border-t border-gray-200 dark:border-gray-700">
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ m.id }}</td>
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ m.pin }}</td>
+                                <td class="p-2 text-gray-800 dark:text-gray-100"> {{ useDateFormat(m.created_at, 'YYYY-MM-DD  HH:mm:ss')}}</td>
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ m.info }}</td>
                                 <td class="p-2 flex items-center gap-2">
-                                    <button @click.prevent="openDetails(m.id)" title="View"><Eye/></button>
-                                    <button @click.prevent="deleteMeeting(m.id)" :disabled="deletingMeeting === m.id" title="Delete" class="text-red-600">
+                                    <button @click.prevent="openDetails(m.id)" title="View" class="text-gray-600 dark:text-gray-200"><Eye/></button>
+                                    <button @click.prevent="deleteMeeting(m.id)" :disabled="deletingMeeting === m.id" title="Delete" class="text-red-600 dark:text-red-400">
                                         <template v-if="deletingMeeting === m.id">⏳</template>
                                         <template v-else><Trash/></template>
                                     </button>
                                 </td>
                              </tr>
-                             <tr v-if="(items && items.length) === 0" class="border-t">
-                                <td class="p-2" colspan="5">No meetings found.</td>
+                             <tr v-if="(items && items.length) === 0" class="border-t border-gray-200 dark:border-gray-700">
+                                <td class="p-2 text-gray-800 dark:text-gray-100" colspan="5">No meetings found.</td>
                              </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Pagination controls -->
-                <div class="flex items-center justify-between mt-3">
-                    <div class="text-sm text-gray-600">Page {{ currentPage }} of {{ totalPages }} — Total: {{ meta.total }}</div>
-                    <div class="flex items-center gap-2">
-                        <MPaginationSimple :items="meetings" class="flex gap-1" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </AppLayout>
-</template>
+                 <!-- Pagination controls -->
+                 <div class="flex items-center justify-between mt-3">
+                     <div class="flex items-center gap-2">
+                         <MPaginationSimple :items="meetings" class="flex gap-1" />
+                     </div>
+                 </div>
+             </div>
+         </div>
+     </AppLayout>
+ </template>

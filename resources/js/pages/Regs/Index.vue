@@ -61,11 +61,7 @@ const doSearch = debounce((q: string) => {
     // reset to page 1 when searching; omit `search` param when empty
     const page = 1;
     const searchParam = (q || '').toString().trim();
-    const base = '/reg-settings';
-    let url = base + '?page=' + encodeURIComponent(String(page));
-    if (searchParam !== '') {
-        url += '&search=' + encodeURIComponent(searchParam);
-    }
+    // build params object (we don't need the string URL because router.get is used below)
     // Call Inertia with query params to perform a SPA request (no full page reload).
     // Use replace so rapid typing doesn't fill history, preserveScroll to keep scroll position.
     const params: any = { page };
@@ -166,53 +162,53 @@ const deleteReg = async (id: number) => {
             <div class="w-full">
                 <h1 class="text-2xl font-semibold mb-2">Registrant Settings</h1>
                 <div class="mb-3">
-                    <input v-model="search" type="search" placeholder="Search registrants by name or number..." class="w-full border rounded p-2" />
+                    <input v-model="search" type="search" placeholder="Search registrants by name or number..." class="w-full border rounded p-2 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
                 </div>
-                <div class="mb-4 text-sm text-gray-600">Showing {{ filteredRegs.length }} of {{ meta.total }}</div>
+                <div class="mb-4 text-sm text-gray-600 dark:text-gray-200">Showing {{ filteredRegs.length }} of {{ meta.total }}</div>
 
-                <div class="overflow-auto bg-white rounded shadow">
+                <div class="overflow-auto bg-white dark:bg-gray-800 rounded shadow">
                     <table class="w-full">
                         <thead>
                             <tr class="text-left">
-                                <th class="p-2">ID</th>
-                                <th class="p-2">Name</th>
-                                <th class="p-2">Number</th>
-                                <th class="p-2">Sessions</th>
-                                <th class="p-2">Actions</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">ID</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Name</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Number</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Sessions</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="r in filteredRegs" :key="r.id" class="border-t">
-                                <td class="p-2">{{ r.id }}</td>
-                                <td class="p-2">
+                            <tr v-for="r in filteredRegs" :key="r.id" class="border-t border-gray-200 dark:border-gray-700">
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ r.id }}</td>
+                                <td class="p-2 text-gray-800 dark:text-gray-100">
                                     <template v-if="editing === r.id">
-                                        <input v-model="form.name" class="w-full border rounded p-1" />
+                                        <input v-model="form.name" class="w-full border rounded p-1 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
                                     </template>
                                     <template v-else>{{ r.name }}</template>
                                 </td>
-                                <td class="p-2">
+                                <td class="p-2 text-gray-800 dark:text-gray-100">
                                     <template v-if="editing === r.id">
-                                        <input v-model="form.number" class="w-full border rounded p-1" />
+                                        <input v-model="form.number" class="w-full border rounded p-1 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
                                     </template>
                                     <template v-else>{{ r.number }}</template>
                                 </td>
-                                <td class="p-2">{{ r.sessions_attended }}</td>
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ r.sessions_attended }}</td>
                                 <td class="p-2">
                                     <template v-if="editing === r.id">
-                                        <button @click.prevent="saveEdit(r.id)" class="px-2 py-1 bg-primary text-white rounded">Save</button>
-                                        <button @click.prevent="cancelEdit" class="px-2 py-1 ml-2 rounded border">Cancel</button>
+                                        <button @click.prevent="saveEdit(r.id)" class="px-2 py-1 bg-primary text-white rounded dark:text-black">Save</button>
+                                        <button @click.prevent="cancelEdit" class="px-2 py-1 ml-2 rounded border dark:text-gray-200">Cancel</button>
                                     </template>
                                     <template v-else>
-                                        <button @click.prevent="startEdit(r)" class="px-2 py-1 bg-gray-100 rounded">Edit</button>
-                                        <button @click.prevent="deleteReg(r.id)" class="px-2 py-1 ml-2 text-red-600" :disabled="deleting === r.id">
+                                        <button @click.prevent="startEdit(r)" class="px-2 py-1 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 rounded">Edit</button>
+                                        <button @click.prevent="deleteReg(r.id)" class="px-2 py-1 ml-2 text-red-600 dark:text-red-400" :disabled="deleting === r.id">
                                             <span v-if="deleting === r.id" class="animate-spin">⏳</span>
                                             <span v-else>Delete</span>
                                         </button>
                                     </template>
                                 </td>
                             </tr>
-                            <tr v-if="filteredRegs.length === 0" class="border-t">
-                                <td class="p-2" colspan="5">No registrants found.</td>
+                            <tr v-if="filteredRegs.length === 0" class="border-t border-gray-200 dark:border-gray-700">
+                                <td class="p-2 text-gray-800 dark:text-gray-100" colspan="5">No registrants found.</td>
                             </tr>
                         </tbody>
                     </table>

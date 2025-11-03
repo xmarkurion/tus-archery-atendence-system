@@ -136,67 +136,67 @@ const goBack = () => window.history.back();
     <AppLayout>
         <div class="px-2 sm:px-4 lg:px-6 py-6 w-full">
             <div class="flex items-center justify-between mb-4">
-                <h1 class="text-2xl font-semibold">Meeting #{{ meeting?.id }}</h1>
+                <h1 class="text-2xl font-semibold dark:text-gray-100">Meeting #{{ meeting?.id }}</h1>
                 <div class="flex gap-2">
-                    <button @click="goBack" class="px-3 py-1 rounded border">Back</button>
-                    <button @click="exportMeeting" class="px-3 py-1 rounded bg-gray-100">Print / PDF</button>
+                    <button @click="goBack" class="px-3 py-1 rounded border dark:border-gray-700 dark:text-gray-100">Back</button>
+                    <button @click="exportMeeting" class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 dark:text-gray-100">Print / PDF</button>
                 </div>
             </div>
 
             <!-- Changed: make a 3-column grid for Start / End / PIN -->
             <div class="grid grid-cols-3 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm">Start time</label>
-                    <input v-model="form.start_time" type="datetime-local" class="w-full border rounded p-2" />
+                    <label class="block text-sm dark:text-gray-200">Start time</label>
+                    <input v-model="form.start_time" type="datetime-local" class="w-full border rounded p-2 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
                 </div>
                 <div>
-                    <label class="block text-sm">End time</label>
-                    <input v-model="form.end_time" type="datetime-local" class="w-full border rounded p-2" />
+                    <label class="block text-sm dark:text-gray-200">End time</label>
+                    <input v-model="form.end_time" type="datetime-local" class="w-full border rounded p-2 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
                 </div>
                 <div>
-                    <label class="block text-sm">PIN</label>
-                    <input v-model="form.pin" type="text" class="w-full border rounded p-2" />
+                    <label class="block text-sm dark:text-gray-200">PIN</label>
+                    <input v-model="form.pin" type="text" class="w-full border rounded p-2 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
                 </div>
             </div>
 
             <div class="mb-4">
-                <label class="block text-sm">Info</label>
-                <input v-model="form.info" type="text" class="w-full border rounded p-2" />
+                <label class="block text-sm dark:text-gray-200">Info</label>
+                <input v-model="form.info" type="text" class="w-full border rounded p-2 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
             </div>
 
             <div class="mb-4">
-                <button @click.prevent="save" class="px-4 py-2 bg-primary text-white rounded">Save</button>
+                <button @click.prevent="save" class="px-4 py-2 bg-primary text-white rounded dark:text-black">Save</button>
             </div>
 
             <div>
                 <!-- search bar -->
                 <div class="mb-3">
-                    <input v-model="search" type="search" placeholder="Search attendees by name or number..." class="w-full border rounded p-2" />
+                    <input v-model="search" type="search" placeholder="Search attendees by name or number..." class="w-full border rounded p-2 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" />
                 </div>
 
-                <h2 class="text-lg font-medium mb-2">Attendees ({{ filteredRegs.length }} / {{ meeting?.regs?.length ?? 0 }})</h2>
+                <h2 class="text-lg font-medium mb-2 dark:text-gray-100">Attendees ({{ filteredRegs.length }} / {{ meeting?.regs?.length ?? 0 }})</h2>
 
-                <div class="overflow-x-auto bg-white rounded shadow w-full p-2">
+                <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded shadow w-full p-2">
                     <table class="min-w-full">
                         <thead>
                             <tr class="text-left">
-                                <th class="p-2">#</th>
-                                <th class="p-2">Name</th>
-                                <th class="p-2">Number</th>
-                                <th class="p-2">Sessions</th>
-                                <th class="p-2">Action</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">#</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Name</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Number</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Sessions</th>
+                                <th class="p-2 text-gray-700 dark:text-gray-200">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(r, i) in filteredRegs" :key="r.id" class="border-t">
-                                <td class="p-2">{{ i + 1 }}</td>
-                                <td class="p-2">{{ r.name }}</td>
-                                <td class="p-2">{{ r.number }}</td>
-                                <td class="p-2">{{ r.sessions_attended }}</td>
-                                <td class="p-2"><button @click.prevent="removeAttendee(r.id)" class="text-red-600">Remove</button></td>
+                            <tr v-for="(r, i) in filteredRegs" :key="r.id" class="border-t border-gray-200 dark:border-gray-700">
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ i + 1 }}</td>
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ r.name }}</td>
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ r.number }}</td>
+                                <td class="p-2 text-gray-800 dark:text-gray-100">{{ r.sessions_attended }}</td>
+                                <td class="p-2"><button @click.prevent="removeAttendee(r.id)" class="text-red-600 dark:text-red-400">Remove</button></td>
                             </tr>
-                            <tr v-if="filteredRegs.length === 0" class="border-t">
-                                <td class="p-2" colspan="5">No attendees found.</td>
+                            <tr v-if="filteredRegs.length === 0" class="border-t border-gray-200 dark:border-gray-700">
+                                <td class="p-2 text-gray-800 dark:text-gray-100" colspan="5">No attendees found.</td>
                             </tr>
                         </tbody>
                     </table>
