@@ -144,7 +144,7 @@ return [
 
     'features' => [
         // Registration disabled intentionally:
-        // Features::registration(),
+        Features::registration(),
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([
