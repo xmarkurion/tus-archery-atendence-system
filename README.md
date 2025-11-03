@@ -30,6 +30,9 @@ cd /home/USERNAME/domains/DOMAIN.COM/laravel_app_files && /usr/local/bin/php84 a
   - remove false
 
 # User management cli
+## INFO
+php artisan user:manage update --help
+
 ## Create a user:
 ```php artisan user:manage create --name="John Doe" --email="john@example.com" --password="secret"```
 
