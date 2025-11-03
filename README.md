@@ -12,7 +12,6 @@ php artisan schedule:work
 php artisan schedule:list
 php artisan schedule:run
 
-
 To simulate the scheduler for production you should set up your OS scheduler to run:
 Unix: * * * * * php /path/to/artisan schedule:run >> /dev/null 2>&1
 
@@ -30,6 +29,21 @@ cd /home/USERNAME/domains/DOMAIN.COM/laravel_app_files && /usr/local/bin/php84 a
   - uncomment //'canRegister' => Features::enabled(Features::registration()),
   - remove false
 
+# User management cli
+## Create a user:
+```php artisan user:manage create --name="John Doe" --email="john@example.com" --password="secret"```
 
-Tools:
+## List all users:
+```php artisan user:manage list```
+
+## Remove a user:
+```php artisan user:manage remove --id=1```
+or
+```php artisan user:manage remove --email="john@example.com"```
+
+## Update a user’s name or email:
+```php artisan user:manage update --id=1 --new-name="Jane Doe" --new-email="jane@example.com"```
+
+# Other
+## Tools:
 - [Vue use](https://vueuse.org/guide/)
