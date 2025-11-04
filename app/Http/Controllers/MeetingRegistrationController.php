@@ -138,6 +138,9 @@ class MeetingRegistrationController extends Controller
             'number' => 'required|string',
         ]);
 
+        // Capitalize first letter of number
+        $data['number'] = ucfirst($data['number']);
+
         $meeting = Meeting::find($data['meeting_id']);
         if (! $meeting) {
             return response()->json(['success' => false, 'message' => 'No meeting found'], 404);
